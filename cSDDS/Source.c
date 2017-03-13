@@ -1,7 +1,7 @@
 // cSDDS - Self Describing Data Steam - A way to store raw byte data in a way that is self-describing with names
 // (C) - Charles Machalow via the MIT License 
 
-#pragma warning(disable:4996) // Disable unsecure function warnings like strcpy
+#pragma warning(disable:4996) // Disable unsecure function warnings like strcpy and keep this compatible with Linux
 
 // If on a debug build, check for memory leaks
 #if _DEBUG
@@ -29,12 +29,7 @@ typedef char BYTE;
 
 uint32_t roundToByte(uint32_t bits)
 {
-	if (bits % 8 == 0)
-	{
-		return bits / 8;
-	}
-	uint32_t b2 = (uint32_t)((bits + (8 - (bits % 8))) / 8);
-	return b2;
+	return (uint32_t)ceill(bits / 8.0);
 }
 
 size_t SMART_STRLEN(char *s)
@@ -56,7 +51,6 @@ char* append(char * a, char * b)
 
 // Self Describing Data Stream
 typedef struct SDDS {
-
 	BYTE** Fields;
 	char** FieldNames;
 	uint32_t* FieldSizes;
@@ -141,7 +135,7 @@ uint32_t getTotalBitSize(SDDS *sdds)
 
 uint64_t getTotalByteSize(SDDS *sdds)
 {
-	return (uint64_t)ceil(getTotalBitSize(sdds) / 8.0);
+	return (uint64_t)ceill(getTotalBitSize(sdds) / 8.0);
 }
 
 char* toXml(SDDS *sdds)          // Method to describe the SDDS
@@ -235,11 +229,18 @@ int main()
 
 // Overall Todos:
 /*
+- Think about getting rid of getSDDS() and moving its stuff to initialize.
 - Get rid of lazy macros
 - Dyanically allocate memory for Fields/FieldNames
-- Implement usage of FieldStrModifiers, and make toString() use it.
 - Add getters and setters to fields by name
+  - Gets the raw memory...
+  - Add method to get field size, modifier by name
+- Implement usage of FieldStrModifiers, and make toString() use it.
 - Add checks for not duplicating field names
 - Add checks for if malloc/etc fail
 - Add way to go 'toBytes' and get a native byte-buffer representation of just the data (without names, etc)
+- Add way to create from xml
+- Add support for nesting
+
+--> Then we have -> Decent parity with the struct functionality and serialization!
 */
