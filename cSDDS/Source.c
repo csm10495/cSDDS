@@ -4,9 +4,9 @@
 #pragma warning(disable:4996) // Disable unsecure function warnings like strcpy and keep this compatible with Linux
 
 // If on a debug build, check for memory leaks
-#if _DEBUG
+#if _DEBUG && _WIN32
 #include <vld.h>
-#endif // _DEBUG
+#endif // _DEBUG && _WIN32
 
 #include <stdio.h>
 #include <stdint.h>
@@ -59,26 +59,6 @@ typedef struct SDDS {
 	bool Initialized;
 } SDDS, *PSDDS;
 
-// Safe getter to get a SDDS on the heap. Presets all to NULL/0. Returns a pointer. Null on failure.
-SDDS* getSDDS()
-{
-	SDDS *s = calloc(1, sizeof(SDDS));
-
-	// Check for failure
-	if (s == NULL)
-	{
-		return NULL;
-	}
-
-	s->Fields = NULL;            // Points to the raw data
-	s->FieldNames = NULL;        // Used to know the name of each field
-	s->FieldSizes = NULL;        // Used to know the size IN BITS of each field
-	s->FieldStrModifiers = NULL; // Used to describe in string format
-	s->FieldCount = 0;           // Number of fields
-	s->Initialized = false;      // Set to True after initializing
-	return s;
-}
-
 void initialize(SDDS *sdds)
 {
 	if (!sdds->Initialized)
@@ -86,6 +66,9 @@ void initialize(SDDS *sdds)
 		// Todo: Don't hardcode to 512 max.
 		sdds->Fields = (BYTE**)calloc(512, sizeof(BYTE**));
 		sdds->FieldNames = (BYTE**)calloc(512, sizeof(char**));
+		sdds->FieldSizes = NULL;        // Used to know the size IN BITS of each field
+		sdds->FieldStrModifiers = NULL; // Used to describe in string format
+		sdds->FieldCount = 0;           // Number of fields
 	}
 	sdds->Initialized = true;
 }
@@ -123,10 +106,10 @@ uint32_t getFieldCount(SDDS *sdds)
 }
 
 // Returns the size in bits
-uint32_t getTotalBitSize(SDDS *sdds)
+uint64_t getTotalBitSize(SDDS *sdds)
 {
-	uint32_t totalSize = 0;
-	for (uint32_t i = 0; i < sdds->FieldCount; i++)
+	uint64_t totalSize = 0;
+	for (uint64_t i = 0; i < sdds->FieldCount; i++)
 	{
 		totalSize += sdds->FieldSizes[i];
 	}
@@ -197,31 +180,30 @@ void close(SDDS *sdds)
 	free(sdds->Fields);
 	free(sdds->FieldNames);
 	sdds->FieldCount = 0;
-	free(sdds);
 }
 
 int main()
 {
-	SDDS* s = getSDDS();
+	SDDS s = { 0 };
 	BYTE a[1] = { 1 };
-	addField(s, "A", 8, a, 0);
+	addField(&s, "A", 8, a, 0);
 
 	BYTE b[6] = { 1, 2, 3, 4, 5 ,6 };
-	addField(s, "B", 48, b, 0);
+	addField(&s, "B", 48, b, 0);
 
 	char* c = "Hello There!";
-	addField(s, "C", strlen(c) * 8, (BYTE*)c, 0);
+	addField(&s, "C", strlen(c) * 8, (BYTE*)c, 0);
 
-	char* fields = toString(s);
+	char* fields = toString(&s);
 	printf("Fields: \n%s\n", fields);
-	printf("Size in Bits:  %lu\n", getTotalBitSize(s));
-	printf("Size in Bytes: %llu\n", getTotalByteSize(s));
-	char * xml = toXml(s);
+	printf("Size in Bits:  %" PRIu64 "\n", getTotalBitSize(&s));
+	printf("Size in Bytes: %" PRIu64 "\n", getTotalByteSize(&s));
+	char * xml = toXml(&s);
 	printf("xml:\n%s\n", xml);
 
 	free(fields);
 	free(xml);
-	close(s);
+	close(&s);
 
 	return 1;
 }
@@ -229,7 +211,6 @@ int main()
 
 // Overall Todos:
 /*
-- Think about getting rid of getSDDS() and moving its stuff to initialize.
 - Get rid of lazy macros
 - Dyanically allocate memory for Fields/FieldNames
 - Add getters and setters to fields by name
