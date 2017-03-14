@@ -13,9 +13,6 @@
 // Local includes
 #include "Memory.h"
 
-// Adds to the field modifiers array a single value
-#define ADD_TO_FIELD_MODIFIERS(fieldStrModifiers, newSize, newValue) fieldStrModifiers = (BYTE*)realloc(fieldStrModifiers, newSize * sizeof(BYTE)); fieldStrModifiers[newSize-1] = newValue;
-
 // Self Describing Data Stream
 typedef struct SDDS {
 	BYTE** Fields;
@@ -61,17 +58,23 @@ bool addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, B
 		return false;
 	}
 
-	// Adds to the field sizes array a single value
+	// Add size to list
+	if (!addTo32BitArray(&sdds->FieldSizes, sdds->FieldCount + 1, fieldSize))
 	{
-		uint32_t newFieldCount = sdds->FieldCount + 1;
-
-		// Allocate up 1.
-		sdds->FieldSizes = (uint32_t*)realloc(sdds->FieldSizes, newFieldCount * sizeof(uint32_t));
-		sdds->FieldSizes[sdds->FieldCount] = fieldSize;
+		// free already allocated
+		free(copiedFieldName);
+		free(copiedRawField);
+		return false;
 	}
 
-	// Add one to the field modifiers array
-	ADD_TO_FIELD_MODIFIERS(sdds->FieldStrModifiers, sdds->FieldCount + 1, fieldStrModifier);
+	// Add field str modifier to the list
+	if (!addTo8BitArray(&sdds->FieldStrModifiers, sdds->FieldCount + 1, fieldStrModifier))
+	{
+		// free already allocated
+		free(copiedFieldName);
+		free(copiedRawField);
+		return false;
+	}
 
 	// Only set and increment the FieldCount if everything went well.
 	sdds->FieldNames[sdds->FieldCount] = copiedFieldName;
@@ -195,14 +198,12 @@ int main()
 
 // Overall Todos:
 /*
-- Get rid of lazy macros ...almost done.
 - Dyanically allocate memory for Fields/FieldNames
 - Add getters and setters to fields by name
   - Gets the raw memory...
   - Add method to get field size, modifier by name
 - Implement usage of FieldStrModifiers, and make toString() use it.
 - Add checks for not duplicating field names
-- Add checks for if malloc/etc fail ... in progress
 - Add way to go 'toBytes' and get a native byte-buffer representation of just the data (without names, etc)
 - Add way to create from xml
 - Add support for nesting

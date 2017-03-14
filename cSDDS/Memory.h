@@ -50,3 +50,13 @@ uint32_t roundToByte(uint32_t bits);
 /// Copy over from old into new via allocation. Returns true on success.
 /// </summary>
 bool newRawCopy(BYTE **pNewName, BYTE *oldName, uint32_t fieldSize);
+
+/// <summary>
+/// Adds the new 32bit value to the array. Returns true on success.
+/// </summary>
+bool addTo32BitArray(uint32_t **array32, uint32_t newSize, uint32_t newValue);
+
+/// <summary>
+/// Adds the new 8bit value to the array. Returns true on success.
+/// </summary>
+bool addTo8BitArray(uint8_t **array8, uint32_t newSize, uint8_t newValue);
