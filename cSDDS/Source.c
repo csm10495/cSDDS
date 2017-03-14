@@ -1,8 +1,6 @@
 // cSDDS - Self Describing Data Steam - A way to store raw byte data in a way that is self-describing with names
 // (C) - Charles Machalow via the MIT License 
 
-#pragma warning(disable:4996) // Disable unsecure function warnings like strcpy and keep this compatible with Linux
-
 // If on a debug build, check for memory leaks
 #if _DEBUG && _WIN32
 #include <vld.h>
@@ -23,13 +21,13 @@ typedef struct SDDS {
 	bool Initialized;
 } SDDS, *PSDDS;
 
+// Hmm may not need this method if we are forcing users to set their SDDS to all 0.
 void initialize(SDDS *sdds)
 {
 	if (!sdds->Initialized)
 	{
-		// Todo: Don't hardcode to 512 max.
-		sdds->Fields = NULL; // (BYTE**)calloc(512, sizeof(BYTE**));
-		sdds->FieldNames = NULL; // (BYTE**)calloc(512, sizeof(char**));
+		sdds->Fields = NULL;            // List of raw fields
+		sdds->FieldNames = NULL;        // List of field names
 		sdds->FieldSizes = NULL;        // Used to know the size IN BITS of each field
 		sdds->FieldStrModifiers = NULL; // Used to describe in string format
 		sdds->FieldCount = 0;           // Number of fields
@@ -78,7 +76,7 @@ bool addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, B
 
 	// Realloc the Fields and FieldNames
 	if (!(reallocPPPByte(&sdds->Fields, sdds->FieldCount + 1, copiedRawField) && \
-		reallocPPPByte(&sdds->FieldNames, sdds->FieldCount + 1, (BYTE*)copiedFieldName)))
+		reallocPPPByte(((BYTE***)&sdds->FieldNames), sdds->FieldCount + 1, (BYTE*)copiedFieldName)))
 	{
 		// free already allocated
 		free(copiedFieldName);
@@ -130,7 +128,7 @@ char* toXml(SDDS *sdds)          // Method to describe the SDDS
 		memset(&buf, 0, sizeof(buf));
 		sprintf(buf, "%d", sdds->FieldStrModifiers[i]);
 		stringAppend(&retStr, buf);
-		stringAppend(&retStr, " >");
+		stringAppend(&retStr, ">");
 
 		// Add raw buffer data
 		for (uint32_t j = 0; j < roundToByte(sdds->FieldSizes[i]); j++)
@@ -200,7 +198,7 @@ int main()
 }
 
 // Compile / Run / Delete on Linux:
-// gcc Source.c -std=c99 -lm && ./a.out && rm a.out
+// gcc -Wall -pedantic Source.c Memory.c -std=c99 -lm && ./a.out && rm a.out
 
 
 // Overall Todos:

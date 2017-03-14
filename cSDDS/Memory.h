@@ -1,9 +1,11 @@
-// Header file for Memory operations for cSSDS
+// Header file for Memory operations for cSSDS (C Self Describing Data Steam)
 // (C) - Charles Machalow via the MIT License 
 
 #pragma once
 
+#ifdef _WIN32
 #pragma warning(disable:4996) // Disable unsecure function warnings like strcpy and keep this compatible with Linux
+#endif // _WIN32
 
 #include <math.h>
 #include <stdbool.h>
@@ -12,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef char BYTE;
+typedef uint8_t BYTE;
 
 /*
 *
