@@ -28,8 +28,8 @@ void initialize(SDDS *sdds)
 	if (!sdds->Initialized)
 	{
 		// Todo: Don't hardcode to 512 max.
-		sdds->Fields = (BYTE**)calloc(512, sizeof(BYTE**));
-		sdds->FieldNames = (BYTE**)calloc(512, sizeof(char**));
+		sdds->Fields = NULL; // (BYTE**)calloc(512, sizeof(BYTE**));
+		sdds->FieldNames = NULL; // (BYTE**)calloc(512, sizeof(char**));
 		sdds->FieldSizes = NULL;        // Used to know the size IN BITS of each field
 		sdds->FieldStrModifiers = NULL; // Used to describe in string format
 		sdds->FieldCount = 0;           // Number of fields
@@ -76,10 +76,17 @@ bool addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, B
 		return false;
 	}
 
-	// Only set and increment the FieldCount if everything went well.
-	sdds->FieldNames[sdds->FieldCount] = copiedFieldName;
-	sdds->Fields[sdds->FieldCount] = copiedRawField;
+	// Realloc the Fields and FieldNames
+	if (!(reallocPPPByte(&sdds->Fields, sdds->FieldCount + 1, copiedRawField) && \
+		reallocPPPByte(&sdds->FieldNames, sdds->FieldCount + 1, (BYTE*)copiedFieldName)))
+	{
+		// free already allocated
+		free(copiedFieldName);
+		free(copiedRawField);
+		return false;
+	}
 
+	// Only set and increment the FieldCount if everything went well.
 	sdds->FieldCount++;
 	return true; 
 }
@@ -198,7 +205,6 @@ int main()
 
 // Overall Todos:
 /*
-- Dyanically allocate memory for Fields/FieldNames
 - Add getters and setters to fields by name
   - Gets the raw memory...
   - Add method to get field size, modifier by name

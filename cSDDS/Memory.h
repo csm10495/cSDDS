@@ -60,3 +60,8 @@ bool addTo32BitArray(uint32_t **array32, uint32_t newSize, uint32_t newValue);
 /// Adds the new 8bit value to the array. Returns true on success.
 /// </summary>
 bool addTo8BitArray(uint8_t **array8, uint32_t newSize, uint8_t newValue);
+
+/// <summary>
+/// Reallocs pppByte to the new size and passes the pointer to the last index
+/// </summary>
+bool reallocPPPByte(BYTE ***pppByte, uint32_t newSize, uint8_t *newValue);

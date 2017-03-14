@@ -91,7 +91,7 @@ bool addTo32BitArray(uint32_t **array32, uint32_t newSize, uint32_t newValue)
 	return false;
 }
 
-bool addTo8BitArray(uint8_t ** array8, uint32_t newSize, uint8_t newValue)
+bool addTo8BitArray(uint8_t **array8, uint32_t newSize, uint8_t newValue)
 {
 	// Allocate up 1.
 	uint8_t *tmp = (uint8_t*)realloc(*array8, newSize * sizeof(uint8_t));
@@ -99,6 +99,19 @@ bool addTo8BitArray(uint8_t ** array8, uint32_t newSize, uint8_t newValue)
 	{
 		tmp[newSize - 1] = newValue;
 		*array8 = tmp;
+		return true;
+	}
+	return false;
+}
+
+bool reallocPPPByte(BYTE ***pppByte, uint32_t newSize, uint8_t* newValue)
+{
+	// Allocate up 1.
+	uint8_t **tmp = (uint8_t**)realloc(*pppByte, newSize * sizeof(uint8_t**));
+	if (tmp)
+	{
+		tmp[newSize - 1] = newValue;
+		*pppByte = tmp;
 		return true;
 	}
 	return false;
