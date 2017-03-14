@@ -42,3 +42,38 @@ bool stringAppend(char **pOrigStr, char *newStr)
 	}
 	return false;
 }
+
+bool newStrCopy(char **pNewName, char *oldName)
+{
+	char* newName = (char*)calloc(cStrLen(oldName) + 1, sizeof(char));
+	if (newName)
+	{
+		strcpy(newName, oldName);
+		*pNewName = newName;
+		return true;
+	}
+	return false;
+}
+
+/*
+*
+* Functions relating to raw memory
+*
+*/
+
+uint32_t roundToByte(uint32_t bits)
+{
+	return (uint32_t)ceill(bits / 8.0);
+}
+
+bool newRawCopy(BYTE **pNewName, BYTE *oldName, uint32_t fieldSize)
+{
+	BYTE* newName = (BYTE*)calloc(fieldSize, sizeof(BYTE));
+	if (newName)
+	{
+		memcpy(newName, oldName, roundToByte(fieldSize));
+		*pNewName = newName;
+		return true;
+	}
+	return false;
+}

@@ -8,28 +8,13 @@
 #include <vld.h>
 #endif // _DEBUG && _WIN32
 
-#include <stdint.h>
-#include <math.h>
 #include <inttypes.h>
 
 // Local includes
 #include "Memory.h"
 
-typedef char BYTE;
-
-// Creates a new string which is a copy of the given one. Make it 1 byte larger to guarantee a null terminator no matter what
-#define COPY_STRING_WITH_NEW_MEMORY(oldName, newName) char* newName = (char*)calloc(strlen(oldName) + 1, sizeof(char)); strcpy(newName, oldName) 
-
-// Creates a new raw memory buffer and copies the old into the new
-#define COPY_RAW_WITH_NEW_MEMORY(oldName, newName, fieldSize) BYTE* newName = (BYTE*)calloc(roundToByte(fieldSize), sizeof(BYTE)); memcpy(newName, oldName, roundToByte(fieldSize))
-
 // Adds to the field modifiers array a single value
 #define ADD_TO_FIELD_MODIFIERS(fieldStrModifiers, newSize, newValue) fieldStrModifiers = (BYTE*)realloc(fieldStrModifiers, newSize * sizeof(BYTE)); fieldStrModifiers[newSize-1] = newValue;
-
-uint32_t roundToByte(uint32_t bits)
-{
-	return (uint32_t)ceill(bits / 8.0);
-}
 
 // Self Describing Data Stream
 typedef struct SDDS {
@@ -56,16 +41,25 @@ void initialize(SDDS *sdds)
 }
 
 // Adds field to the SDDS
-void addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, BYTE fieldStrModifier)
+bool addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, BYTE fieldStrModifier)
 {
 	initialize(sdds);
 
 	// Copy name over
-	COPY_STRING_WITH_NEW_MEMORY(fieldName, copiedFieldName);
-	sdds->FieldNames[sdds->FieldCount] = copiedFieldName;
+	char *copiedFieldName = NULL;
+	if (!newStrCopy(&copiedFieldName, fieldName))
+	{
+		return false;
+	}
 
-	COPY_RAW_WITH_NEW_MEMORY(rawField, copiedRawField, fieldSize);
-	sdds->Fields[sdds->FieldCount] = copiedRawField;
+	// Copy raw data
+	BYTE *copiedRawField = NULL;
+	if (!newRawCopy(&copiedRawField, rawField, fieldSize))
+	{
+		// free already allocated
+		free(copiedFieldName);
+		return false;
+	}
 
 	// Adds to the field sizes array a single value
 	{
@@ -79,7 +73,12 @@ void addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, B
 	// Add one to the field modifiers array
 	ADD_TO_FIELD_MODIFIERS(sdds->FieldStrModifiers, sdds->FieldCount + 1, fieldStrModifier);
 
+	// Only set and increment the FieldCount if everything went well.
+	sdds->FieldNames[sdds->FieldCount] = copiedFieldName;
+	sdds->Fields[sdds->FieldCount] = copiedRawField;
+
 	sdds->FieldCount++;
+	return true; 
 }
 
 uint32_t getFieldCount(SDDS *sdds)
@@ -196,14 +195,14 @@ int main()
 
 // Overall Todos:
 /*
-- Get rid of lazy macros
+- Get rid of lazy macros ...almost done.
 - Dyanically allocate memory for Fields/FieldNames
 - Add getters and setters to fields by name
   - Gets the raw memory...
   - Add method to get field size, modifier by name
 - Implement usage of FieldStrModifiers, and make toString() use it.
 - Add checks for not duplicating field names
-- Add checks for if malloc/etc fail
+- Add checks for if malloc/etc fail ... in progress
 - Add way to go 'toBytes' and get a native byte-buffer representation of just the data (without names, etc)
 - Add way to create from xml
 - Add support for nesting
