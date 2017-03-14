@@ -8,13 +8,12 @@
 #include <vld.h>
 #endif // _DEBUG && _WIN32
 
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
 #include <math.h>
 #include <inttypes.h>
-#include <stdbool.h>
+
+// Local includes
+#include "Memory.h"
 
 typedef char BYTE;
 
@@ -30,23 +29,6 @@ typedef char BYTE;
 uint32_t roundToByte(uint32_t bits)
 {
 	return (uint32_t)ceill(bits / 8.0);
-}
-
-size_t SMART_STRLEN(char *s)
-{
-	if (s)
-		return strlen(s);
-	return 0;
-}
-// Adds to a given c string the other c string (append). Adds b to a
-char* append(char * a, char * b)
-{
-	size_t alen = SMART_STRLEN(a);
-	size_t blen = SMART_STRLEN(b);
-	a = (char*)realloc(a, alen + blen + 1);
-	memcpy(a + alen, b, blen);
-	a[alen + blen] = '\0'; // null char
-	return a;
 }
 
 // Self Describing Data Stream
@@ -124,33 +106,33 @@ uint64_t getTotalByteSize(SDDS *sdds)
 char* toXml(SDDS *sdds)          // Method to describe the SDDS
 {
 	char* retStr = NULL;
-	retStr = append(retStr, "<Fields>\n");
+	stringAppend(&retStr, "<Fields>\n");
 	for (uint32_t i = 0; i < sdds->FieldCount; i++)
 	{
-		retStr = append(retStr, "<Field FieldName=\"");
-		retStr = append(retStr, sdds->FieldNames[i]);
-		retStr = append(retStr, "\" ");
-		retStr = append(retStr, "FieldSize=");
+		stringAppend(&retStr, "<Field FieldName=\"");
+		stringAppend(&retStr, sdds->FieldNames[i]);
+		stringAppend(&retStr, "\" ");
+		stringAppend(&retStr, "FieldSize=");
 		char buf[BUFSIZ] = "\0";
 		sprintf(buf, "%u", sdds->FieldSizes[i]);
-		retStr = append(retStr, buf);
-		retStr = append(retStr, " ");
-		retStr = append(retStr, "FieldModifier=");
+		stringAppend(&retStr, buf);
+		stringAppend(&retStr, " ");
+		stringAppend(&retStr, "FieldModifier=");
 		memset(&buf, 0, sizeof(buf));
 		sprintf(buf, "%d", sdds->FieldStrModifiers[i]);
-		retStr = append(retStr, buf);
-		retStr = append(retStr, " >");
+		stringAppend(&retStr, buf);
+		stringAppend(&retStr, " >");
 
 		// Add raw buffer data
 		for (uint32_t j = 0; j < roundToByte(sdds->FieldSizes[i]); j++)
 		{
 			memset(&buf, 0, sizeof(buf));
 			sprintf(buf, "%02X", sdds->Fields[i][j]);
-			retStr = append(retStr, buf);
+			stringAppend(&retStr, buf);
 		}
-		retStr = append(retStr, "</Field>\n");
+		stringAppend(&retStr, "</Field>\n");
 	}
-	retStr = append(retStr, "</Fields>\n");
+	stringAppend(&retStr, "</Fields>\n");
 
 	return retStr;
 }
@@ -160,8 +142,8 @@ char* toString(SDDS *sdds)         // Method to parse the SDDS
 	char* retStr = NULL;
 	for (uint32_t i = 0; i < sdds->FieldCount; i++)
 	{
-		retStr = append(retStr, sdds->FieldNames[i]);
-		retStr = append(retStr, "\n");
+		stringAppend(&retStr, sdds->FieldNames[i]);
+		stringAppend(&retStr, "\n");
 	}
 	return retStr;
 }
@@ -192,7 +174,7 @@ int main()
 	addField(&s, "B", 48, b, 0);
 
 	char* c = "Hello There!";
-	addField(&s, "C", strlen(c) * 8, (BYTE*)c, 0);
+	addField(&s, "C", cStrLen(c) * 8, (BYTE*)c, 0);
 
 	char* fields = toString(&s);
 	printf("Fields: \n%s\n", fields);
@@ -207,6 +189,9 @@ int main()
 
 	return 1;
 }
+
+// Compile / Run / Delete on Linux:
+// gcc Source.c -std=c99 -lm && ./a.out && rm a.out
 
 
 // Overall Todos:
