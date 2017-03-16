@@ -35,10 +35,42 @@ void initialize(SDDS *sdds)
 	sdds->Initialized = true;
 }
 
+
+// Returns the a pointer to the raw data for a given field name. Also, optionally can give back the field size and field str modifier
+BYTE* getRawField(SDDS *sdds, char *fieldName, uint32_t *fieldSize, BYTE *fieldStrModifier)
+{
+	if (fieldName && sdds)
+	{
+		for (uint64_t i = 0; i < sdds->FieldCount; i++)
+		{
+			if (strcmp(fieldName, sdds->FieldNames[i]) == 0)
+			{
+				if (fieldSize)
+				{
+					*fieldSize = sdds->FieldSizes[i];
+				}
+				if (fieldStrModifier)
+				{
+					*fieldStrModifier = sdds->FieldStrModifiers[i];
+				}
+				return sdds->Fields[i];
+			}
+		}
+	}
+	return NULL;
+}
+
 // Adds field to the SDDS
 bool addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, BYTE fieldStrModifier)
 {
 	initialize(sdds);
+
+	// Make sure the new fieldName is unique
+	if (getRawField(sdds, fieldName, NULL, NULL))
+	{
+		// Name conflict, name already exists.
+		return false;
+	}
 
 	// Copy name over
 	char *copiedFieldName = NULL;
@@ -192,6 +224,7 @@ int main()
 
 	free(fields);
 	free(xml);
+
 	close(&s);
 
 	return 1;
@@ -203,11 +236,9 @@ int main()
 
 // Overall Todos:
 /*
-- Add getters and setters to fields by name
-  - Gets the raw memory...
-  - Add method to get field size, modifier by name
+- Better split up SDDS files into headers/implementation files maybe even forward declare.
+- Ability to remove fields by name
 - Implement usage of FieldStrModifiers, and make toString() use it.
-- Add checks for not duplicating field names
 - Add way to go 'toBytes' and get a native byte-buffer representation of just the data (without names, etc)
 - Add way to create from xml
 - Add support for nesting
