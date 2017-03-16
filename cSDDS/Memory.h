@@ -23,7 +23,7 @@ typedef uint8_t BYTE;
 */
 
 /// <summary>
-/// A smart strlen function that will return 0 for a null po9inter
+/// A smart strlen function that will return 0 for a null pointer
 /// </summary>
 size_t cStrLen(char *s);
 
