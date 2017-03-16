@@ -6,6 +6,7 @@
 #include <vld.h>
 #endif // _DEBUG && _WIN32
 
+#include <assert.h>
 #include <inttypes.h>
 
 // Local includes
@@ -35,13 +36,12 @@ void initialize(SDDS *sdds)
 	sdds->Initialized = true;
 }
 
-
 // Returns the a pointer to the raw data for a given field name. Also, optionally can give back the field size and field str modifier
-BYTE* getRawField(SDDS *sdds, char *fieldName, uint32_t *fieldSize, BYTE *fieldStrModifier)
+BYTE* getRawField(SDDS *sdds, char *fieldName, uint32_t *fieldSize, BYTE *fieldStrModifier, uint32_t *fieldIndex)
 {
 	if (fieldName && sdds)
 	{
-		for (uint64_t i = 0; i < sdds->FieldCount; i++)
+		for (uint32_t i = 0; i < sdds->FieldCount; i++)
 		{
 			if (strcmp(fieldName, sdds->FieldNames[i]) == 0)
 			{
@@ -53,11 +53,41 @@ BYTE* getRawField(SDDS *sdds, char *fieldName, uint32_t *fieldSize, BYTE *fieldS
 				{
 					*fieldStrModifier = sdds->FieldStrModifiers[i];
 				}
+				if (fieldIndex)
+				{
+					*fieldIndex = i;
+				}
 				return sdds->Fields[i];
 			}
 		}
 	}
 	return NULL;
+}
+
+bool removeField(SDDS* sdds, char *fieldName)
+{
+	uint32_t fieldIndex = 0;
+	BYTE* rawField = getRawField(sdds, fieldName, NULL, NULL, &fieldIndex);
+	if (rawField)
+	{
+		// free the raw field and field name
+		free(sdds->Fields[fieldIndex]);
+		free(sdds->FieldNames[fieldIndex]);
+
+		// Move up everything after this
+		for (uint32_t i = fieldIndex; i < (sdds->FieldCount - 1); i++)
+		{
+			sdds->FieldSizes[i] = sdds->FieldSizes[i + 1];
+			sdds->FieldStrModifiers[i] = sdds->FieldStrModifiers[i + 1];
+			sdds->Fields[i] = sdds->Fields[i + 1];
+			sdds->FieldNames[i] = sdds->FieldNames[i + 1];
+		}
+
+		sdds->FieldCount--;
+		return true;
+	}
+	// Field with this name does not exist
+	return false;
 }
 
 // Adds field to the SDDS
@@ -66,7 +96,7 @@ bool addField(SDDS *sdds, char* fieldName, uint32_t fieldSize, BYTE* rawField, B
 	initialize(sdds);
 
 	// Make sure the new fieldName is unique
-	if (getRawField(sdds, fieldName, NULL, NULL))
+	if (getRawField(sdds, fieldName, NULL, NULL, NULL))
 	{
 		// Name conflict, name already exists.
 		return false;
@@ -222,6 +252,19 @@ int main()
 	char * xml = toXml(&s);
 	printf("xml:\n%s\n", xml);
 
+	assert(removeField(&s, "B"));
+
+	free(fields);
+	free(xml);
+
+	printf("After removing B:\n\n");
+	fields = toString(&s);
+	printf("Fields: \n%s\n", fields);
+	printf("Size in Bits:  %" PRIu64 "\n", getTotalBitSize(&s));
+	printf("Size in Bytes: %" PRIu64 "\n", getTotalByteSize(&s));
+	xml = toXml(&s);
+	printf("xml:\n%s\n", xml);
+
 	free(fields);
 	free(xml);
 
@@ -237,7 +280,6 @@ int main()
 // Overall Todos:
 /*
 - Better split up SDDS files into headers/implementation files maybe even forward declare.
-- Ability to remove fields by name
 - Implement usage of FieldStrModifiers, and make toString() use it.
 - Add way to go 'toBytes' and get a native byte-buffer representation of just the data (without names, etc)
 - Add way to create from xml
