@@ -3,7 +3,7 @@
 
 // If on a debug build, check for memory leaks
 #if _DEBUG && _WIN32
-#include <vld.h>
+//#include <vld.h>
 #endif // _DEBUG && _WIN32
 
 #include <assert.h>
@@ -273,16 +273,64 @@ int main()
 	return 1;
 }
 
+//
+// Misc Testing Code
+//
+
+// for performance comparison
+typedef struct test_struct
+{
+	BYTE a[1];
+	BYTE b[6];
+	char* c;
+} test_struct;
+
+
+void testCSDDS()
+{
+	SDDS s = { 0 };
+	BYTE a[1] = { 1 };
+	addField(&s, "A", 8, a, 0);
+
+	BYTE b[6] = { 1, 2, 3, 4, 5 ,6 };
+	addField(&s, "B", 48, b, 0);
+
+	char* c = "Hello There!";
+	addField(&s, "C", cStrLen(c) * 8, (BYTE*)c, 0);
+	close(&s);
+}
+
+void testStruct()
+{
+	test_struct t = { 0 };
+	t.a[0] = 1;
+	BYTE b[6] = { 1, 2, 3, 4, 5 ,6 };
+	memcpy(&t.b, &b, 6);
+	t.c = "Hello There!";
+}
+
+//
+// End Misc Testing
+//
+
 // Compile / Run / Delete on Linux:
 // gcc -Wall -pedantic Source.c Memory.c -std=c99 -lm && ./a.out && rm a.out
 
 
 // Overall Todos:
 /*
+- (Re)Move testing code
 - Better split up SDDS files into headers/implementation files maybe even forward declare.
 - Implement usage of FieldStrModifiers, and make toString() use it.
+	- May want to convert the modifiers into actual strings to allow users to do things like "0x%08X" as opposed to just 'X'
+		Would also be more forward compatible
 - Add way to go 'toBytes' and get a native byte-buffer representation of just the data (without names, etc)
 - Add way to create from xml
+- Performance (bring all lookups down to O(log(n))). Still not O(1), but much better than O(log(n))
+	- Consider using binary search style sorting for names
+		- Would probably still want to keep track of correct ordering for 'toBytes'
+			- Maybe have a linked list for actual ordering and use the array-style ordering for field name sorting
+	- Consider preallocating memory for structures to not have to do as many callocs/reallocs
 - Add support for nesting
 
 --> Then we have -> Decent parity with the struct functionality and serialization!
