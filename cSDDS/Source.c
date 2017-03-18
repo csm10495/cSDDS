@@ -319,7 +319,7 @@ void testStruct()
 
 // Overall Todos:
 /*
-- (Re)Move testing code
+- (Re)Move testing codememo
 - Better split up SDDS files into headers/implementation files maybe even forward declare.
 - Implement usage of FieldStrModifiers, and make toString() use it.
 	- May want to convert the modifiers into actual strings to allow users to do things like "0x%08X" as opposed to just 'X'

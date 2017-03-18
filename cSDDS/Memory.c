@@ -9,11 +9,11 @@
 *
 */
 
-size_t cStrLen(char *s)
+uint32_t cStrLen(char *s)
 {
 	if (s)
 	{
-		return strlen(s);
+		return (uint32_t)strlen(s);
 	}
 	return 0;
 }
@@ -30,8 +30,8 @@ bool stringAppend(char **pOrigStr, char *newStr)
 		origStr = NULL;
 	}
 
-	size_t origLen = cStrLen(origStr);
-	size_t newLen = cStrLen(newStr);
+	uint32_t origLen = cStrLen(origStr);
+	uint32_t newLen = cStrLen(newStr);
 	char* appendedStr = (char*)realloc(origStr, origLen + newLen + 1); // Add 1 for null char
 	if (appendedStr)
 	{
