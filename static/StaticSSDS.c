@@ -1,6 +1,8 @@
 // StaticSDDS.c - Implementation file for an example of a static Self-Describing-Data-Stream
 // MIT License - 2018 - Charles Machalow
 
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include <assert.h>
 #include <inttypes.h>
 #include <memory.h>
@@ -24,6 +26,7 @@
 #define NORMAL_LESS_THAN    '<'
 #define NORMAL_GREATER_THAN '>'
 #define NORMAL_AMPERSAND    '&'
+
 
 static void stringToXmlSafeInGpBuffer(char* data)
 {
@@ -156,6 +159,84 @@ static void addStringToBuffer(uint8_t* buf, size_t bufSize, size_t* offset, char
 	*offset += len;
 }
 
+bool getStringFieldByTokenAndPutInGpBuf(uint8_t *xmlBuf, size_t xmlBufSize, char * tokenId)
+{
+	char* lessThan = "<";
+	size_t countOfLessThan = countACharInString(xmlBuf, xmlBufSize, lessThan[0]);
+
+	char* token = strtok(xmlBuf, lessThan);
+	size_t i = 0;
+	for (; i < (countOfLessThan - 1); i++)
+	{
+		if (i % 2 != 0)
+		{
+			size_t tokenIdLoc = findAfterInStr(token, 0, "token=\"");
+			assert(tokenIdLoc != -1);
+			size_t endTokenIdQuoteLoc = findAfterInStr(token + tokenIdLoc, 0, "\"");
+			assert(endTokenIdQuoteLoc != -1);
+			endTokenIdQuoteLoc += tokenIdLoc - 1; // get before quote
+
+			if (endTokenIdQuoteLoc - tokenIdLoc == strlen(tokenId))
+			{
+				if (memcmp(token + tokenIdLoc, tokenId, strlen(tokenId)) == 0)
+				{
+					uint8_t* gpBuf = GET_GP_BUF();
+					size_t offset = 0;
+					addStringToBuffer(gpBuf, getGpBufferSize(), &offset, token, strlen(token));
+					PUT_GP_BUF();
+					return true;
+				}
+			}
+			printf("Current: %s\n", token);
+		}
+		token = strtok(NULL, lessThan);
+	}
+	return false;
+}
+
+size_t countACharInString(char * str, size_t len, char c)
+{
+	size_t count = 0;
+	if (len == 0)
+	{
+		len = strlen(str);
+	}
+
+	size_t i = 0;
+	for (; i < len; i++)
+	{
+		if (str[i] == c)
+		{
+			count += 1;
+		}
+	}
+
+	return count;
+}
+
+size_t findAfterInStr(char * strToSearchIn, size_t strToSearchInLen, char *strToFind)
+{
+	size_t i = 0;
+	if (strToSearchInLen == 0)
+	{
+		strToSearchInLen = strlen(strToSearchIn);
+	}
+
+	for (; i < strToSearchInLen; i++)
+	{
+		size_t remainingLen = strToSearchInLen - i;
+		if (remainingLen > strlen(strToFind))
+		{
+			if (memcmp(strToSearchIn + i, strToFind, strlen(strToFind)) == 0)
+			{
+				return i + strlen(strToFind);
+			}
+		}
+	}
+
+	return -1;
+}
+
 static void addStringFieldToBuffer(uint8_t* buf, size_t bufSize, char* data, char* tokenId, size_t* offset)
 {
 	stringToXmlSafeInGpBuffer(data);
@@ -214,7 +295,7 @@ int main()
 {
 	uint8_t tbuf[4096] = { 0 };
 
-	char* testStr = "TESThey&\"<> Serial123";
+	char* testStr = "Test";
 
 	START_CFLIST(tbuf, sizeof(tbuf));
 	ADD_CFLIST_STRING_FIELD(TOKEN_SERIAL, testStr);
@@ -223,6 +304,8 @@ int main()
 	END_CFLIST();
 
 	printf("%s\n", (char*)tbuf);
+
+	getStringFieldByTokenAndPutInGpBuf(tbuf, sizeof(tbuf), "B");
 
 	return EXIT_SUCCESS;
 }

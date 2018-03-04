@@ -82,6 +82,23 @@ static void addBoolFieldToBuffer(uint8_t* buf, size_t bufSize, bool data, char* 
 /// </summary>
 static void addStringToBuffer(uint8_t* buf, size_t bufSize, size_t* offset, char* str, size_t len);
 
+/// <summary>
+/// Gets a string field by token id from the given xml
+/// </summary>
+static bool getStringFieldByTokenAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
+
+
+/// <summary>
+/// Counts the number of times a char appears in a string
+/// </summary>
+static size_t countACharInString(char* str, size_t len, char c);
+
+/// <summary>
+/// Looks for a string in a string and returns the location in the string if found. Returns -1 if not found.
+/// Returns the location just after strToFind
+/// </summary>
+static size_t findAfterInStr(char* strToSearchIn, size_t strToSearchInLen, char* strToFind);
+
 // Macros for creating a CFList
 #define START_CFLIST(buf, bufSize) { uint8_t* __buf = buf; size_t __bufSize = bufSize; size_t __offset = 0; addStringToBuffer(buf, bufSize, &__offset, START_XML, strlen(START_XML));
 #define END_CFLIST() addStringToBuffer(__buf, __bufSize, &__offset, END_XML, strlen(END_XML)); }
