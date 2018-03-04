@@ -154,17 +154,28 @@ void xmlSafeToStringInGpBuffer(char* data, size_t len)
 
 static void addStringToBuffer(uint8_t* buf, size_t bufSize, size_t* offset, char* str, size_t len)
 {
+	size_t ofs = 0;
+	if (offset == NULL)
+	{
+		offset = &ofs;
+	}
+
 	assert(bufSize > *offset + len);
 	memcpy(buf + *offset, str, len);
 	*offset += len;
 }
 
-bool getStringFieldByTokenAndPutInGpBuf(uint8_t *xmlBuf, size_t xmlBufSize, char * tokenId)
+static bool getFieldByTokenAndPutInGpBuf(uint8_t *xmlBuf, size_t xmlBufSize, char * tokenId)
 {
-	char* lessThan = "<";
-	size_t countOfLessThan = countACharInString(xmlBuf, xmlBufSize, lessThan[0]);
+	bool retVal = false;
+	uint8_t* gpBuf = GET_GP_BUF();
 
-	char* token = strtok(xmlBuf, lessThan);
+	memcpy(gpBuf, xmlBuf, xmlBufSize);
+
+	char* lessThan = "<";
+	size_t countOfLessThan = countACharInString(gpBuf, xmlBufSize, lessThan[0]);
+
+	char* token = strtok(gpBuf, lessThan);
 	size_t i = 0;
 	for (; i < (countOfLessThan - 1); i++)
 	{
@@ -180,21 +191,54 @@ bool getStringFieldByTokenAndPutInGpBuf(uint8_t *xmlBuf, size_t xmlBufSize, char
 			{
 				if (memcmp(token + tokenIdLoc, tokenId, strlen(tokenId)) == 0)
 				{
-					uint8_t* gpBuf = GET_GP_BUF();
+
 					size_t offset = 0;
 					addStringToBuffer(gpBuf, getGpBufferSize(), &offset, token, strlen(token));
-					PUT_GP_BUF();
-					return true;
+					gpBuf[strlen(token)] = 0;
+					retVal = true;
+					break;
 				}
 			}
-			printf("Current: %s\n", token);
 		}
 		token = strtok(NULL, lessThan);
 	}
-	return false;
+
+	PUT_GP_BUF();
+
+	return retVal;
 }
 
-size_t countACharInString(char * str, size_t len, char c)
+static bool getFieldStringValueAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
+{
+	if (!getFieldByTokenAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId))
+	{
+		return false;
+	}
+
+	if (!findTextBetweenStrsInGpBufAndPutInGpBuf(">", NULL))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+static bool getFieldTypePutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
+{
+	if (!getFieldByTokenAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId))
+	{
+		return false;
+	}
+
+	if (!findTextBetweenStrsInGpBufAndPutInGpBuf("type=\"", "\""))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+static size_t countACharInString(char* str, size_t len, char c)
 {
 	size_t count = 0;
 	if (len == 0)
@@ -214,8 +258,13 @@ size_t countACharInString(char * str, size_t len, char c)
 	return count;
 }
 
-size_t findAfterInStr(char * strToSearchIn, size_t strToSearchInLen, char *strToFind)
+static size_t findAfterInStr(char* strToSearchIn, size_t strToSearchInLen, char *strToFind)
 {
+	if (strToSearchIn == NULL)
+	{
+		return -1;
+	}
+
 	size_t i = 0;
 	if (strToSearchInLen == 0)
 	{
@@ -235,6 +284,47 @@ size_t findAfterInStr(char * strToSearchIn, size_t strToSearchInLen, char *strTo
 	}
 
 	return -1;
+}
+
+static bool findTextBetweenStrsInGpBufAndPutInGpBuf(char* left, char* right)
+{
+	uint8_t* gpBuf = GET_GP_BUF();
+
+	size_t leftLoc = 0;
+	if (left)
+	{
+		leftLoc = findAfterInStr(gpBuf, getGpBufferSize(), left);
+		if (leftLoc == -1)
+		{
+			return false;
+		}
+	}
+
+	size_t rightLoc = 0;
+	if (right == NULL)
+	{
+		rightLoc = leftLoc + strlen(gpBuf + leftLoc);
+	}
+	else
+	{
+		rightLoc = leftLoc + findAfterInStr(gpBuf + leftLoc, getGpBufferSize(), right);
+		if (rightLoc == -1)
+		{
+			return false;
+		}
+		rightLoc -= strlen(right); // get before right
+	}
+
+
+	assert(rightLoc > leftLoc);
+
+	size_t copySize = (rightLoc - leftLoc);
+	memmove(gpBuf, gpBuf + leftLoc, copySize);
+	gpBuf[copySize] = 0; // null terminator
+
+	PUT_GP_BUF();
+
+	return true;
 }
 
 static void addStringFieldToBuffer(uint8_t* buf, size_t bufSize, char* data, char* tokenId, size_t* offset)
@@ -291,6 +381,33 @@ static void addBoolFieldToBuffer(uint8_t* buf, size_t bufSize, bool data, char* 
 	*offset += numChars;
 }
 
+static uint64_t getIntegerValueFromId(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
+{
+	assert(getFieldStringValueAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId));
+
+	uint64_t retVal = 0;
+	uint8_t* gpBuf = GET_GP_BUF();
+
+	retVal = atoll(gpBuf);
+	PUT_GP_BUF();
+
+	return retVal;
+}
+
+static bool getBooleanValueFromId(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
+{
+	assert(getFieldStringValueAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId));
+
+	bool retVal = false;
+	uint8_t* gpBuf = GET_GP_BUF();
+	if (gpBuf[0] == 'T' || gpBuf[0] == 't')
+	{
+		retVal = true;
+	}
+	PUT_GP_BUF();
+	return retVal;
+}
+
 int main()
 {
 	uint8_t tbuf[4096] = { 0 };
@@ -300,12 +417,19 @@ int main()
 	START_CFLIST(tbuf, sizeof(tbuf));
 	ADD_CFLIST_STRING_FIELD(TOKEN_SERIAL, testStr);
 	ADD_CFLIST_SIGNED_FIELD(TOKEN_SIZE, -12345);
-	ADD_CFLIST_BOOL_FIELD(TOKEN_SUPPORTS_POWER, true);
+	ADD_CFLIST_BOOL_FIELD(TOKEN_SUPPORTS_POWER, false);
 	END_CFLIST();
 
 	printf("%s\n", (char*)tbuf);
 
-	getStringFieldByTokenAndPutInGpBuf(tbuf, sizeof(tbuf), "B");
+	//getFieldByTokenAndPutInGpBuf(tbuf, sizeof(tbuf), "B");
+	getFieldStringValueAndPutInGpBuf(tbuf, sizeof(tbuf), "C");
+	getFieldTypePutInGpBuf(tbuf, sizeof(tbuf), "C");
+	getFieldStringValueAndPutInGpBuf(tbuf, sizeof(tbuf), "A");
+	getFieldTypePutInGpBuf(tbuf, sizeof(tbuf), "A");
+
+	int64_t i = getIntegerValueFromId(tbuf, sizeof(tbuf), "A");
+	bool b = getBooleanValueFromId(tbuf, sizeof(tbuf), "C");
 
 	return EXIT_SUCCESS;
 }

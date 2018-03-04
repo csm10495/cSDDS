@@ -48,6 +48,14 @@ static inline size_t getGpBufferSize()
 	return sizeof(___gpBuffer);
 }
 
+/// <summary>
+/// Returns true if the given buf is the gpBuf
+/// </summary>
+static inline bool isGpBuf(uint8_t* buf)
+{
+	return buf == ___gpBuffer;
+}
+
 // General Purpose Buffer Macros
 #define GET_GP_BUF() __getGpBuffer(); {
 #define PUT_GP_BUF() __putGpBuffer(); }
@@ -85,8 +93,12 @@ static void addStringToBuffer(uint8_t* buf, size_t bufSize, size_t* offset, char
 /// <summary>
 /// Gets a string field by token id from the given xml
 /// </summary>
-static bool getStringFieldByTokenAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
+static bool getFieldByTokenAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
 
+/// <summary>
+/// Gets the field value and puts it in GpBuf
+/// </summary>
+static bool getFieldStringValueAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
 
 /// <summary>
 /// Counts the number of times a char appears in a string
@@ -98,6 +110,26 @@ static size_t countACharInString(char* str, size_t len, char c);
 /// Returns the location just after strToFind
 /// </summary>
 static size_t findAfterInStr(char* strToSearchIn, size_t strToSearchInLen, char* strToFind);
+
+/// <summary>
+/// Find the text between left and right in strToSearch. Place the result in gpBuf. Returns true on success.
+/// </summary>
+static bool findTextBetweenStrsInGpBufAndPutInGpBuf(char* left, char* right);
+
+/// <summary>
+/// Gets the field type and puts it in gpBug. Returns true on success
+/// </summary>
+static bool getFieldTypePutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
+
+/// <summary>
+/// Returns a uint64_t value from the given id.
+/// </summary>
+static uint64_t getIntegerValueFromId(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
+
+/// <summary>
+/// Returns a boolean value from the given id.
+/// </summary>
+static bool getBooleanValueFromId(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
 
 // Macros for creating a CFList
 #define START_CFLIST(buf, bufSize) { uint8_t* __buf = buf; size_t __bufSize = bufSize; size_t __offset = 0; addStringToBuffer(buf, bufSize, &__offset, START_XML, strlen(START_XML));
