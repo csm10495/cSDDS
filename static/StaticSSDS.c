@@ -223,6 +223,36 @@ static bool getFieldStringValueAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize,
 	return true;
 }
 
+bool getFieldHexBinValueAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
+{
+	if (!getFieldStringValueAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId))
+	{
+		return false;
+	}
+
+	// string of the data is in gpbuf... convert to 'real' binary data from hex bin
+
+	uint8_t* gpBuf = GET_GP_BUF();
+	size_t readOffset = 0;
+	size_t writeOffset = 0;
+	char buf[2] = { 0 };
+	while (gpBuf[readOffset] != 0)
+	{
+		assert(readOffset < getGpBufferSize());
+
+		// copy 2 bytes to buf
+		memcpy(buf, gpBuf + readOffset, 2);
+		gpBuf[writeOffset] = (uint8_t)strtol(buf, NULL, 16);
+		readOffset += 2;
+		writeOffset += 1;
+	}
+	gpBuf[writeOffset] = 0; // null char... i guess.
+
+	PUT_GP_BUF();
+
+	return true;
+}
+
 static bool getFieldTypePutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
 {
 	if (!getFieldByTokenAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId))
@@ -381,6 +411,27 @@ static void addBoolFieldToBuffer(uint8_t* buf, size_t bufSize, bool data, char* 
 	*offset += numChars;
 }
 
+void addHexBinaryDataFieldToBuffer(uint8_t* buf, size_t bufSize, uint8_t* data, size_t dataSize, char* tokenId, size_t *offset)
+{
+	uint8_t* gpBuf = GET_GP_BUF();
+	int numChars;
+
+	// build hex bin string in gpbuf
+	size_t i = 0;
+	for (; i < dataSize; i++)
+	{
+		assert(i < getGpBufferSize());
+		numChars = snprintf(gpBuf + (i * 2), getGpBufferSize() - (i * 2), "%02X", data[i]);
+		assert(numChars > 0);
+	}
+
+	numChars = snprintf(buf + *offset, bufSize - *offset, XML_FIELD, HEXBINDATA_S, tokenId, gpBuf);
+	assert(numChars > 0);
+	*offset += numChars;
+
+	PUT_GP_BUF();
+}
+
 static uint64_t getIntegerValueFromId(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId)
 {
 	assert(getFieldStringValueAndPutInGpBuf(xmlBuf, xmlBufSize, tokenId));
@@ -417,7 +468,7 @@ int main()
 	START_CFLIST(tbuf, sizeof(tbuf));
 	ADD_CFLIST_STRING_FIELD(TOKEN_SERIAL, testStr);
 	ADD_CFLIST_SIGNED_FIELD(TOKEN_SIZE, -12345);
-	ADD_CFLIST_BOOL_FIELD(TOKEN_SUPPORTS_POWER, false);
+	ADD_CFLIST_BOOL_FIELD(TOKEN_SUPPORTS_POWER, true);
 	END_CFLIST();
 
 	printf("%s\n", (char*)tbuf);

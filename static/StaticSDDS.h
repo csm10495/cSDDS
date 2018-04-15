@@ -19,6 +19,7 @@ bool ___gpBufferInUse = false;
 #define INTEGER_S "Integer"
 #define BOOL_S "Boolean"
 #define STRING_S "String"
+#define HEXBINDATA_S "HexBinaryData"
 
 /// <summary>
 /// Private method to get the gPBuffer
@@ -86,6 +87,11 @@ static void addUnsignedFieldToBuffer(uint8_t* buf, size_t bufSize, uint64_t data
 static void addBoolFieldToBuffer(uint8_t* buf, size_t bufSize, bool data, char* tokenId, size_t* offset);
 
 /// <summary>
+/// Adds hex binary data field to an xml buffer
+/// </summary>
+static void addHexBinaryDataFieldToBuffer(uint8_t* buf, size_t bufSize, uint8_t* data, size_t dataSize, char* tokenId, size_t* offset);
+
+/// <summary>
 /// Adds a string to a given buffer via memcpy
 /// </summary>
 static void addStringToBuffer(uint8_t* buf, size_t bufSize, size_t* offset, char* str, size_t len);
@@ -99,6 +105,11 @@ static bool getFieldByTokenAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, cha
 /// Gets the field value and puts it in GpBuf
 /// </summary>
 static bool getFieldStringValueAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
+
+/// <summary>
+/// Gets the hex bin data field value and puts it in GpBuf
+/// </summary>
+static bool getFieldHexBinValueAndPutInGpBuf(uint8_t* xmlBuf, size_t xmlBufSize, char* tokenId);
 
 /// <summary>
 /// Counts the number of times a char appears in a string
@@ -140,6 +151,7 @@ static bool getBooleanValueFromId(uint8_t* xmlBuf, size_t xmlBufSize, char* toke
 #define ADD_CFLIST_SIGNED_FIELD(tokenId, data) addSignedFieldToBuffer(__buf, __bufSize, data, tokenId, &__offset)
 #define ADD_CFLIST_BOOL_FIELD(tokenId, data) addBoolFieldToBuffer(__buf, __bufSize, data, tokenId, &__offset)
 #define ADD_CFLIST_STRING_FIELD(tokenId, data) addStringFieldToBuffer(__buf, __bufSize, data, tokenId, &__offset)
+#define ADD_CFLIST_HEXBINDATA_FIELD(tokenId, data, dataSize) addHexBinaryDataFieldToBuffer(__buf, __bufSize, data, dataSize, tokenId, &__offset)
 
 // Current Tokens
 #define TOKEN_SIZE				  "A" // Size
